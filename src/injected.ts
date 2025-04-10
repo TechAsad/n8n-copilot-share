@@ -1,8 +1,8 @@
-//console.log("✅ Injected script running inside the n8n page!");
+// console.log("✅ Injected script running inside the n8n page!");
 
 // Ensure script runs only once
 if ((window as any).n8nInjectedScriptLoaded) {
-    //console.log("⚠️ Injected script already loaded. Skipping...");
+    // console.log("⚠️ Injected script already loaded. Skipping...");
 } else {
     (window as any).n8nInjectedScriptLoaded = true; // Prevent re-injection
 
@@ -14,7 +14,7 @@ if ((window as any).n8nInjectedScriptLoaded) {
         const y = event.clientY;
 
         if (now - lastClick.time < 200 && lastClick.x === x && lastClick.y === y) {
-            //console.log("🚫 Duplicate click ignored!");
+            // console.log("🚫 Duplicate click ignored!");
             return;
         }
 
@@ -24,23 +24,28 @@ if ((window as any).n8nInjectedScriptLoaded) {
 
         // ✅ Allow normal behavior for interactive elements
         const interactiveElements = ["A", "BUTTON", "INPUT", "SELECT", "TEXTAREA", "LABEL"];
-        if (interactiveElements.includes(target.tagName) ||
+        if (
+            interactiveElements.includes(target.tagName) ||
             target.closest("a") ||
             target.closest("button") ||
             target.closest("[role='button']") ||
-            target.hasAttribute("onclick")) {
+            target.hasAttribute("onclick")
+        ) {
             return;
         }
 
         event.preventDefault();
 
-        window.postMessage({
-            source: "n8n-injected",
-            type: "CLICK",
-            x,
-            y,
-            target: (event.target as HTMLElement)?.tagName,
-        }, "*");
+        window.postMessage(
+            {
+                source: "n8n-injected",
+                type: "CLICK",
+                x,
+                y,
+                target: (event.target as HTMLElement)?.tagName,
+            },
+            "*"
+        );
     };
 
     // Ensure only one listener is attached
@@ -53,10 +58,13 @@ if ((window as any).n8nInjectedScriptLoaded) {
     const trackUrlChange = () => {
         if (window.location.href !== lastUrl) {
             lastUrl = window.location.href;
-            //console.log("🌍 URL changed:", lastUrl);
+            // console.log("🌍 URL changed:", lastUrl);
 
             window.postMessage(
-                { source: "n8n-injected", type: "URL_CHANGE", url: lastUrl },
+                {
+                    source: "n8n-injected",
+                    type: "URL_CHANGE", url: lastUrl
+                },
                 "*"
             );
         }
@@ -80,5 +88,16 @@ if ((window as any).n8nInjectedScriptLoaded) {
     const observer = new MutationObserver(trackUrlChange);
     observer.observe(document, { subtree: true, childList: true });
 
-    //console.log("🔍 URL Tracking initialized");
+    // ✅ Track tab visibility changes
+    const handleVisibilityChange = () => {
+        const isVisible = !document.hidden;
+        window.postMessage(
+            { source: "n8n-injected", type: "TAB_VISIBILITY", visible: isVisible },
+            "*"
+        );
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // console.log("🔍 URL & Tab Tracking initialized");
 }

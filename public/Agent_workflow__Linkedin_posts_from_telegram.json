@@ -1,0 +1,1559 @@
+{
+  "name": "Agent/workflow: Linkedin posts from telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "model": "gpt-4o-2024-11-20",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "bb449e8a-783f-4734-a235-afb965df3bbe",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-2024-11-20",
+        "options": {
+          "temperature": 0.1
+        }
+      },
+      "id": "39001ba1-ba50-48cd-b93e-b8703777e52b",
+      "name": "OpenAI Chat Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        740
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/images/generations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\n  \"prompt\": \"{{$json[\"output\"]}}\",\n  \"n\": 1,\n  \"model\": \"dall-e-3\",\n  \"size\": \"1024x1024\"\n}",
+        "options": {}
+      },
+      "id": "2aa4dad7-9cbb-4dcc-9024-9afb4beed32e",
+      "name": "Generate Post Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.data[0].url }}",
+        "options": {}
+      },
+      "id": "ffa94c83-2679-49a0-98f5-f85d38cf62de",
+      "name": "Download Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "person": "ExrUzyQLRz",
+        "text": "={{ $('Generate Post Text').all()[0].json.output }}",
+        "shareMediaCategory": "IMAGE",
+        "additionalFields": {}
+      },
+      "id": "3e8c6901-4e42-472f-966e-5beaef17b572",
+      "name": "LinkedIn",
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        760,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appftT5BalpTg1tir",
+          "mode": "list",
+          "cachedResultName": "Linkedin Posts",
+          "cachedResultUrl": "https://airtable.com/appftT5BalpTg1tir"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblKx3r8aHu7tvrxj",
+          "mode": "list",
+          "cachedResultName": "Table 1",
+          "cachedResultUrl": "https://airtable.com/appftT5BalpTg1tir/tblKx3r8aHu7tvrxj"
+        },
+        "filterByFormula": "{Summary} != 'A'",
+        "options": {
+          "fields": [
+            "Date",
+            "Summary"
+          ]
+        }
+      },
+      "id": "63322934-c8b5-4715-8990-c84e3cc58808",
+      "name": "Airtable_tree",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        -1320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "4a26d83b-4006-456f-ad24-18a3bec884d5",
+      "name": "OpenAI Chat Model2",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        220,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "335909e8-5861-4181-869d-19fb3f238376",
+      "name": "Auto-fixing Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        340,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseFormat": "json_object",
+          "temperature": 0.1,
+          "maxRetries": 5
+        }
+      },
+      "id": "90d4a978-bd55-4e82-9538-425420511e0b",
+      "name": "OpenAI Chat Model3",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        340,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"post\": {\n    \"title\": \"title\",\n    \"summary\": \"Post Summary\"\n  }\n}"
+      },
+      "id": "9164d208-9d9a-4e45-b856-912ef0ff0468",
+      "name": "Structured Output Parser1",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access all Airtable rows\nconst rows = $items(\"Airtable_tree\");\n\n// Transform rows into a single item\nconst formattedRows = rows.map((item, index) => {\n  const { Date, Summary } = item.json; // Extract Date and Post fields\n  return `Post ${index + 1}:\\nDate: ${Date}\\nPost Summary: ${Summary}`;\n}).join(\"\\n\\n\");\n\n// Return as one single item\nreturn [{ json: { combinedPosts: formattedRows } }];\n"
+      },
+      "id": "8e451fd0-0412-42d3-b67d-8582c2b030ad",
+      "name": "Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appftT5BalpTg1tir",
+          "mode": "list",
+          "cachedResultName": "Linkedin Posts",
+          "cachedResultUrl": "https://airtable.com/appftT5BalpTg1tir"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblKx3r8aHu7tvrxj",
+          "mode": "list",
+          "cachedResultName": "Table 1",
+          "cachedResultUrl": "https://airtable.com/appftT5BalpTg1tir/tblKx3r8aHu7tvrxj"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Title": "={{ $json[\"output\"][\"output\"][\"post\"][\"title\"] }}",
+            "Summary": "={{ $json[\"output\"][\"output\"][\"post\"][\"summary\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Title",
+              "displayName": "Title",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cee1f48b-0c7b-45dd-bc0e-ab790b3eaebb",
+      "name": "Airtable",
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        660,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "=Your task is to output title and short summary in json format for the provided post.\nwrite a short summary in 2 lines which should cover the complete post and what it is about.\n\nformat:\n\n{\n  \"post\": {\n    \"title\": \"title\",\n    \"summary\": \"Post Summary\"\n  }\n}\n\n\nPost:\n\n{{ $('Generate Post Text').item.json.output }}\n",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "id": "5ef2f720-2126-48dd-9f88-b29fb75cccca",
+      "name": "AI Agent Update Airtable",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        280,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "download": true
+        }
+      },
+      "id": "360bf9ec-4e7c-4283-a65c-2aeb8a280dca",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -3760,
+        1060
+      ],
+      "webhookId": "fae80716-22ec-43e2-aa6e-f944590e9e92"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}"
+      },
+      "id": "9375f384-f1b3-48f0-a054-6024c3edca9d",
+      "name": "Telegram1",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -3020,
+        760
+      ],
+      "webhookId": "a1ac38da-26e7-448b-8027-5b9ed61095a8"
+    },
+    {
+      "parameters": {},
+      "id": "ce91df42-0691-4820-99ee-4d1aae268462",
+      "name": "Ignore",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        -3000,
+        1240
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"action\": \"action\",\n  \"message\": \"text\"\n}"
+      },
+      "id": "7c23e8be-d0e7-4603-8010-6b8c4a2adcf2",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -1760,
+        1600
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('AI Agent1').item.json.output.message }} ",
+        "replyMarkup": "forceReply",
+        "forceReply": {},
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "83cdf609-ddfb-4167-86f1-0f609edbfb3b",
+      "name": "Telegram2",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -1420,
+        1060
+      ],
+      "webhookId": "aebf60ef-7d82-42d0-b4e1-20a0301f0961"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "contextWindowLength": 10
+      },
+      "id": "7f1f5065-2095-4488-a921-081ffd6483ae",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.2,
+      "position": [
+        -2480,
+        1320
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "61daf2f3-e7cd-483d-8287-5752b70abffd",
+      "name": "Wikipedia",
+      "type": "@n8n/n8n-nodes-langchain.toolWikipedia",
+      "typeVersion": 1,
+      "position": [
+        -2380,
+        1360
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## For Voice Note Transcription ",
+        "height": 227.14891198478279,
+        "width": 427.4054132624194
+      },
+      "id": "4538ef1c-1f21-448b-95ce-86a776af36fa",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -3080,
+        680
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "90e8965d-dbaf-4fe7-b4e7-a991ad4ef7f3",
+      "name": "Auto-fixing Output Parser1",
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        -1900,
+        1340
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-2024-11-20",
+        "options": {
+          "responseFormat": "json_object",
+          "temperature": 0.1,
+          "maxRetries": 5
+        }
+      },
+      "id": "6f7b2765-ad8d-4521-b96b-d13d564c79e2",
+      "name": "OpenAI Chat Model5",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -1880,
+        1600
+      ]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-2024-11-20",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "e2e0dc8d-c6a1-4f96-abb8-2711214d3cde",
+      "name": "OpenAI Chat Model4",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [
+        -2720,
+        1420
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').all()[0].json.message.chat.id }}",
+        "text": "=I have Posted on linkedin.\nPost:\n\n{{ $('Generate Post Text').item.json.output }}",
+        "replyMarkup": "forceReply",
+        "forceReply": {},
+        "additionalFields": {
+          "reply_to_message_id": "={{ $('Telegram Trigger').item.json.message.message_id }}"
+        }
+      },
+      "id": "cc1b8706-3f61-4269-8244-578d010c67f3",
+      "name": "Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1060,
+        60
+      ],
+      "webhookId": "2b1d24b0-8558-4705-94f2-817cd13bbe13"
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "=Your task is to write a prompt for image generator AI model. \n\nThe design should be clean, minimalistic, realistic, and relevant to the topic discussed in the post. Focus on elements that resonate with the theme of the post.\n\nAvoid clutter or excessive details; the image should immediately convey the post's essence. Use a color palette that feels modern and aligns with the post, with accents of vibrant colors to draw attention. The composition should feel dynamic and forward-thinking, encouraging curiosity and interaction from the audience.\n\nDo not include any typography, or word that makes model to add typography, symbols, or icons that could be distracting or unnecessary. Let the visual storytelling stand on its own, enhancing the message of the post and making it memorable for viewers.\n\n\nDo NOT add any single or double quotes.\n\nLinkedin Post:\n\n{{ $json.output }}",
+        "options": {
+          "humanMessage": "TOOLS\n------\nAssistant can ask the user to use tools to look up information that may be helpful in answering the users original question. The tools the human can use are:\n\n{tools}\n\n{format_instructions}\n\nUSER'S INPUT\n--------------------\nHere is the user's input:\n\n{{input}}",
+          "systemMessage": "Assistant is a large language model trained by OpenAI.\n\nAssistant is designed to be able to assist with a wide range of tasks, from answering simple questions to providing in-depth explanations and discussions on a wide range of topics. As a language model, Assistant is able to generate human-like text based on the input it receives, allowing it to engage in natural-sounding conversations and provide responses that are coherent and relevant to the topic at hand.\n\nAssistant is constantly learning and improving, and its capabilities are constantly evolving. It is able to process and understand large amounts of text, and can use this knowledge to provide accurate and informative responses to a wide range of questions. Additionally, Assistant is able to generate its own text based on the input it receives, allowing it to engage in discussions and provide explanations and descriptions on a wide range of topics.\n\nOverall, Assistant is a powerful system that can help with a wide range of tasks and provide valuable insights and information on a wide range of topics. Whether you need help with a specific question or just want to have a conversation about a particular topic, Assistant is here to assist."
+        }
+      },
+      "id": "7c74e7d8-845a-4b08-b4a8-c09e40260f77",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        -80,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an intelligent linkedin assistant. \n\nYour job is to write my new linkedin post. Make it look like written by me in maximum 100-150 words. Do not use fancy words. Write in my writing style.\n\nCORE IDENTITY:\n- You are Farid Khan, U.S. Territory Lead at Supertype\n- Primary focus: Generative AI solutions for enterprise innovation\n- Professional persona: Technology strategist, AI implementation expert\n\nPOSTING OBJECTIVES:\n1. Demonstrate thought leadership in Generative AI\n2. Build professional credibility and trust\n3. Showcase Supertype's unique value proposition\n4. Engage potential enterprise clients and technology decision-makers.\n5. Write for the market awaree people.\n6. You need a Point of View (POV) on your industry, how you solve the problem differently than others.\n7. Providing Consultancy services for Generative AI. Providing remote teams for Generative AI development and implementations. LLM Development service as listed on supertype.ai site.\n\nCONTENT GENERATION GUIDELINES:\n\n- Use provided post idea or complete post\n- Gather more information if required\n\nTone and Voice:\n- Write in first person.\n- Maintain a professional, authoritative, but approachable tone\n- Balance technical depth with strategic business insights\n- Use clear, concise language that demystifies complex AI concepts\n- Add line breaks frequently for readability (no more than 3 sentences per block).\n\nPost Structure:\nA. Hook: Compelling opening that highlights a current AI challenge or opportunity\nB. Insight: Deep-dive analysis from multiple perspectives\nC. Practical Solutions: Concrete strategies or case study references\nD. Thought Leadership: Forward-looking perspective on AI's potential\nE. Call to Action: Invitation to engage, discuss, or explore opportunities\n\nSpecific Content Focuses:\n- Analyze emerging AI technologies and their enterprise implications\n- Discuss practical implementation strategies for generative AI\n- Highlight Supertype's unique approach to AI solution development\n- Address common enterprise challenges and AI-driven solutions\n- Provide actionable insights for business leaders\n\nStrategic Frameworks:\n1. Problem Identification\n2. Technology Assessment\n3. Implementation Strategy\n4. ROI and Impact Analysis\n\nProhibited Content:\n- Avoid overtly sales-driven language\n- No unsubstantiated claims\n- No disclosure of confidential client information\n- Maintain professional ethics and industry standards\n\nCredibility Boosters:\n- Include relevant statistics\n- Reference recent industry reports\n- Cite expert opinions and research findings\n- Share brief, anonymized success stories\n\nPost Length:\n- Optimal length: 100-150 words maximum. Do not write more words than this limit.\n- Ensure high information density\n- Use strategic paragraph breaks and white space\n- Incorporate relevant hashtags: #AI #GenerativeAI #EnterpriseInnovation #TechStrategy\n\nEngagement Optimization:\n- End with an open-ended question or thought-provoking statement\n- Encourage comments, discussions, and professional networking\n- Suggest potential collaboration or knowledge-sharing opportunities\n\nPost Verification Checklist:\n1. Factual accuracy\n2. Alignment with Supertype's brand values\n3. Personal authenticity\n4. Strategic business insights\n5. Potential for meaningful professional discourse\n\n\nFinal Instruction:\nAlways prioritize providing genuine value to the professional community over direct marketing. The goal is to educate, inspire, and create meaningful professional connections.\n\nDo not use markdown styling. Text will be posted directly, make it clean and plain for posting.\nDo not add title.\n\nDate Today:\n{{ $now }}\n\nLinkedin Post Idea:\n{{ $('Switch1').all()[0].json.output.message }}\n\nPrevious Posts With Date of Post and Title:\n{{ \n  $('Code').item.json.combinedPosts\n}}\n\n\n\n",
+        "options": {}
+      },
+      "id": "f4591a27-1bbd-4413-9d7a-b43e3adf3e38",
+      "name": "Generate Post Text",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        -540,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool for WEB PAGE scrapping.\nprovide only the url.",
+        "url": "https://scrape.serper.dev",
+        "sendQuery": true,
+        "parametersQuery": {
+          "values": [
+            {
+              "name": "url"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "parametersHeaders": {
+          "values": [
+            {
+              "name": "X-API-KEY",
+              "valueProvider": "fieldValue"
+            },
+            {
+              "name": "Content-Type",
+              "valueProvider": "fieldValue",
+              "value": "application/json"
+            }
+          ]
+        },
+        "optimizeResponse": true,
+        "responseType": "text"
+      },
+      "id": "a5c6a7db-626e-43e5-8985-4b2f3eb289c4",
+      "name": "Web Scrapper",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        -2300,
+        1640
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool for basic google search.",
+        "url": "https://google.serper.dev/search",
+        "sendQuery": true,
+        "parametersQuery": {
+          "values": [
+            {
+              "name": "q"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "parametersHeaders": {
+          "values": [
+            {
+              "name": "X-API-KEY",
+              "valueProvider": "fieldValue"
+            },
+            {
+              "name": "Content-Type",
+              "valueProvider": "fieldValue",
+              "value": "application/json"
+            }
+          ]
+        },
+        "optimizeResponse": true,
+        "dataField": "organic",
+        "fieldsToInclude": "selected",
+        "fields": "title, snippet, date, link"
+      },
+      "id": "36d29860-b4a5-480f-ae79-7b8d346c6ad9",
+      "name": "Google Serper",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        -2120,
+        1640
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool for advance google search and/or url scrapping.",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendHeaders": true,
+        "parametersHeaders": {
+          "values": [
+            {
+              "name": "Content-Type",
+              "valueProvider": "fieldValue",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "parametersBody": {
+          "values": [
+            {
+              "name": "query"
+            },
+            {
+              "name": "api_key",
+              "valueProvider": "fieldValue"
+            }
+          ]
+        },
+        "optimizeResponse": true,
+        "dataField": "results",
+        "fieldsToInclude": "selected",
+        "fields": "title,url,content,raw_content"
+      },
+      "id": "1148d7b1-b566-4add-bb0e-ec9177e746e6",
+      "name": "Tavily google search",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        -2040,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool for basic google search.",
+        "url": "https://google.serper.dev/search",
+        "sendQuery": true,
+        "parametersQuery": {
+          "values": [
+            {
+              "name": "q"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "parametersHeaders": {
+          "values": [
+            {
+              "name": "X-API-KEY",
+              "valueProvider": "fieldValue"
+            },
+            {
+              "name": "Content-Type",
+              "valueProvider": "fieldValue",
+              "value": "application/json"
+            }
+          ]
+        },
+        "optimizeResponse": true,
+        "dataField": "organic",
+        "fieldsToInclude": "selected",
+        "fields": "title, snippet, date, link"
+      },
+      "id": "f8139014-5cd1-4309-9dc5-62ae5f03c3fb",
+      "name": "Google Serper1",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        -300,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool for advance google search and/or url scrapping.",
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "sendHeaders": true,
+        "parametersHeaders": {
+          "values": [
+            {
+              "name": "Content-Type",
+              "valueProvider": "fieldValue",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "parametersBody": {
+          "values": [
+            {
+              "name": "query"
+            },
+            {
+              "name": "api_key",
+              "valueProvider": "fieldValue"
+            }
+          ]
+        },
+        "optimizeResponse": true,
+        "dataField": "results",
+        "fieldsToInclude": "selected",
+        "fields": "title,url,content,raw_content"
+      },
+      "id": "8e755401-ba52-4532-aff8-4dbad8e1aa08",
+      "name": "Tavily google search1",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        -520,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "toolDescription": "Use this tool for WEB PAGE scrapping.\nprovide only the url.",
+        "url": "https://scrape.serper.dev",
+        "sendQuery": true,
+        "parametersQuery": {
+          "values": [
+            {
+              "name": "url"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "parametersHeaders": {
+          "values": [
+            {
+              "name": "X-API-KEY",
+              "valueProvider": "fieldValue"
+            },
+            {
+              "name": "Content-Type",
+              "valueProvider": "fieldValue",
+              "value": "application/json"
+            }
+          ]
+        },
+        "optimizeResponse": true,
+        "responseType": "text"
+      },
+      "id": "70c747f0-894b-4058-8508-b205850732f3",
+      "name": "Web Scrapper1",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        -120,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Checking for reply or post",
+        "height": 227.14891198478279,
+        "width": 335.92701712111824
+      },
+      "id": "9e06281c-cd14-46c3-8548-411ae5760fbc",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1980,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "be4f384e-8e5d-442e-88fe-5811a09d533b",
+                    "leftValue": "={{ $('AI Agent1').item.json.output.action}}",
+                    "rightValue": "post",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Post"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "12bd39b3-68bc-4637-94ac-a31916dc15e2",
+                    "leftValue": "={{ $('AI Agent1').item.json.output.action}}",
+                    "rightValue": "post",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Reply"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "acc4c712-26e6-403b-a44e-dab09d66a4e7",
+      "name": "Switch1",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1860,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2798e0e7-48ca-49ef-a75b-924ddc279d24",
+              "name": "=text",
+              "value": "={{ $json.message.text }} ",
+              "type": "string"
+            },
+            {
+              "id": "bd330faa-7390-4c69-b759-4b3ea8a6ef2b",
+              "name": "text2",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "25f59141-0630-4690-bc69-a276b9967fa4",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -2700,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "id": "9f9d999f-84ed-4169-bba3-e130492f9909",
+      "name": "OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.5,
+      "position": [
+        -2880,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.message.voice.file_id }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Voice"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "be4f384e-8e5d-442e-88fe-5811a09d533b",
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "12bd39b3-68bc-4637-94ac-a31916dc15e2",
+                    "leftValue": "{{ $json.message.text }}",
+                    "rightValue": "/start",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Start"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3715fb80-9b59-441b-81b1-ad7ec5410a96",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -3220,
+        1080
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').all()[0].json.message.chat.id }}",
+        "text": "=Sorry! You are not subscribed.",
+        "replyMarkup": "forceReply",
+        "forceReply": {},
+        "additionalFields": {
+          "reply_to_message_id": "={{ $('Telegram Trigger').item.json.message.message_id }}"
+        }
+      },
+      "id": "acddf3e8-a2bc-4f40-a87a-ce2964444dd8",
+      "name": "Telegram3",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -3280,
+        1500
+      ],
+      "webhookId": "4ca19e80-a429-4783-a01b-9175c4710857"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are my research assistant for marke research and writing new linkedin post. \nWe are having a discussion on the topic/niche and you will present your insights using the provided search tools. \nAlways use search tools to get latest and up to date information.\nuse deep search for most accurate informaion.\nOnce everything is collected, ask for my approval with linkedin post draft. \nIf I say yes, then proceed to post on linkedin.\n\nAlways ask for my approval with linkedin post draft.\n\nMy Name: {{$('Switch').item.json.message.from.first_name}} {{$('Switch').item.json.message.from.last_name}}\n\nDate Today: {{ $now }}\n\nYou should add only 'reply' or 'post' in your response. only use 'post' when you are asked to post on linkedin.\n\nPlease be precise and concise when replying. Do not include long information, keep it short because you are having conversation with me. \n\noutput format:\n{\n  \"action\": \"reply or post\",\n  \"message\": \"text or post summary\"\n}\n\n\nnew message:\n{{$json.text }}\n{{$json.text2 }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are my research assistant for curating a new linkedin post. \nWe will have discussion on the topic and you will present your insights using the provided search tools. \nOnce everything is collected, ask for my approval with linkedin post overview. \nIf I say yes, then proceed to post on linkedin.\nfocus on intersting trends, focus on small and medium companies.\nAlways ask for my approval with post content.\n\n1. Tool Integration:\n   - Process tools effectively to gather and validate data or insights.\n\n2. Additional Instructions:\n   - Avoid formatting responses in Markdown; present them in plain text or simple, structured formatting.\n\n3. You should add 'reply' or 'post' in your response. only use 'post' when you are asked to post on linkedin.\n\noutput format:\n{\n  \"action\": \"reply or post\",\n  \"message\": \"text or post summary\"\n}\n\nFor Linkedin Posts:\n\nCORE IDENTITY:\n- You are Farid Khan, U.S. Territory Lead at Supertype\n- Primary focus: Generative AI solutions for enterprise innovation\n- Professional persona: Technology strategist, AI implementation expert\n\nPOSTING OBJECTIVES:\n1. Demonstrate thought leadership in Generative AI\n2. Build professional credibility and trust\n3. Showcase Supertype's unique value proposition\n4. Engage potential enterprise clients and technology decision-makers.\n5. Write for the market awaree people.\n6. You need a Point of View (POV) on your industry, how you solve the problem differently than others.\n7. Providing Consultancy services for Generative AI. Providing remote teams for Generative AI development and implementations. LLM Development service as listed on supertype.ai site.\n\nCONTENT GENERATION GUIDELINES:\n\nResearch and Preparation:\n- Use Google Search to gather latest trends, research, and industry insights from last week.\n- use web scrapping to gather more in depth information\n- Cross-reference multiple sources to ensure accuracy\n- Focus on cutting-edge AI developments, enterprise applications, and market trends\n- Prioritize recent publications from reputable tech journals, research institutions, and industry reports\n\nTone and Voice:\n- Write in first person.\n- Maintain a professional, authoritative, but approachable tone\n- Balance technical depth with strategic business insights\n- Use clear, concise language that demystifies complex AI concepts\n- Add line breaks frequently for readability (no more than 3 sentences per block).\n\nPost Structure:\nA. Hook: Compelling opening that highlights a current AI challenge or opportunity\nB. Insight: Deep-dive analysis from multiple perspectives\nC. Practical Solutions: Concrete strategies or case study references\nD. Thought Leadership: Forward-looking perspective on AI's potential\nE. Call to Action: Invitation to engage, discuss, or explore opportunities\n",
+          "maxIterations": 20
+        }
+      },
+      "id": "a3758b82-e622-47f1-a34f-4e0053b484f1",
+      "name": "AI Agent1",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        -2460,
+        960
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.chat.username == \"AsadTech7\" || $('Telegram Trigger').item.json.message.chat.username == \"fxtoofaan\" }}",
+                    "rightValue": "=ture",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "True"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ca94e726-82c8-4bba-a309-e816724b4cef",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.chat.username == \"AsadTech7\" || $('Telegram Trigger').item.json.message.chat.username == \"fxtoofaan\" }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "False"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "05ef2793-8f93-4907-8753-404e6445e9f5",
+      "name": "Switch2",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -3480,
+        1100
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Set telegram access token. Get it from @BotFather in telegram ",
+        "height": 227.14891198478279,
+        "width": 427.4054132624194
+      },
+      "id": "9b9b2cfa-dcf7-4dcd-a3c1-8e80e493c069",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -3940,
+        980
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Get Serper API\nhttps://serper.dev/dashboard",
+        "height": 200,
+        "width": 480
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -2460,
+        1600
+      ],
+      "id": "e9d99aa8-cbef-41c9-920c-a41458d1779d",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "## Get Serper API\nhttps://serper.dev/dashboard",
+        "height": 220,
+        "width": 380
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -380,
+        640
+      ],
+      "id": "446334f6-da36-4f70-9808-eef54f8776e7",
+      "name": "Sticky Note4"
+    }
+  ],
+  "pinData": {
+    "Telegram Trigger": [
+      {
+        "json": {
+          "update_id": 188300093,
+          "message": {
+            "message_id": 283,
+            "from": {
+              "id": 7015282966,
+              "is_bot": false,
+              "first_name": "Asad",
+              "last_name": "Iqbal",
+              "username": "AsadTech7",
+              "language_code": "en"
+            },
+            "chat": {
+              "id": 7015282966,
+              "first_name": "Asad",
+              "last_name": "Iqbal",
+              "username": "AsadTech7",
+              "type": "private"
+            },
+            "date": 1738834520,
+            "text": "hi"
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Post Text",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Post Image": {
+      "main": [
+        [
+          {
+            "node": "Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Image": {
+      "main": [
+        [
+          {
+            "node": "LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable_tree": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent Update Airtable",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent Update Airtable",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Generate Post Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent Update Airtable": {
+      "main": [
+        [
+          {
+            "node": "Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram1": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wikipedia": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-fixing Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Auto-fixing Output Parser1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Generate Post Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Post Text": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI Agent Update Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Web Scrapper": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Serper": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily google search": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Serper1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Generate Post Text",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily google search1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Generate Post Text",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Web Scrapper1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Generate Post Text",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Airtable_tree",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Telegram1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ignore",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch2": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6c0dcc11-4c7c-4ecc-a273-2dbab78b26b2",
+  "meta": {
+    "instanceId": "a7e5f903f011f392c1d1079194cbe7e2ecd9a4f88f21407572f79eceb4aba41d"
+  },
+  "id": "3dtJqkdlUmYP4HQP",
+  "tags": [
+    {
+      "createdAt": "2025-02-27T17:40:08.793Z",
+      "updatedAt": "2025-02-27T17:40:08.793Z",
+      "id": "wlfwGqg2M5bMx767",
+      "name": "Content creation-wokflow"
+    }
+  ]
+}

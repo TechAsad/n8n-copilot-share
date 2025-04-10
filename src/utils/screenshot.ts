@@ -26,7 +26,7 @@ export const captureScreen = async (): Promise<string | null> => {
         const context = canvas.getContext('2d');
         if (context) {
           context.drawImage(bitmap, 0, 0);
-          const base64Image = canvas.toDataURL('image/jpeg', 0.8);
+          const base64Image = canvas.toDataURL('image/jpeg', 0.5); // image size reduced for fast processing
 
           // Cleanup
           track.stop();
