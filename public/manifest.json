@@ -1,0 +1,46 @@
+{
+    "manifest_version": 3,
+    "name": "My Side Panel Extension",
+    "version": "1.0",
+    "description": "A Chrome Extension Side Panel with React & Vite",
+    "permissions": [
+        "sidePanel",
+        "scripting",
+        "tabs",
+        "storage"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "background": {
+        "service_worker": "background.js",
+        "type": "module"
+    },
+    "side_panel": {
+        "default_path": "index.html"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_idle"
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "injected.js"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ],
+    "action": {
+        "default_title": "Click to open panel"
+    }
+}
